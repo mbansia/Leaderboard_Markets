@@ -30,6 +30,13 @@ export const MARKET_OPTIONS = [
 
 export const LEARN_STEPS = [
   {
+    title: 'What is a Leaderboard Market? & Why is it Needed?',
+    mechanic:
+      'A new DeFi primitive that turns any objective ranking (AI models, sports standings, creator growth, protocol revenues) into a continuous, tradable market.',
+    rationale:
+      'Traditional prediction markets ask “Will X happen?” and then die, fracturing liquidity across thousands of binary, expiring contracts where users can lose 100% of principal. Leaderboard markets ask “How much of the shared pool does each contender deserve right now?” This creates a continuous, non-terminal market where users can hold long-term, trade in and out freely, and invest purely in relative performance.',
+  },
+  {
     title: 'Shared Yield Reserve & Full-Basket Minting',
     mechanic:
       'All collateral sits in one shared reserve. The protocol never mints single names; 1 USDC mints exactly one full basket of every contender token.',
@@ -70,5 +77,18 @@ export const LEARN_STEPS = [
       'For finite leagues, a final sync locks terminal weights and halts trading. Holders redeem directly against terminal NAV without needing terminal AMM liquidity.',
     rationale:
       'Season-end unwind is deterministic and guaranteed, giving institutions a clean settlement path.',
+  },
+  {
+    title: 'The Category Map & Estimated Demand',
+    mechanic:
+      'A visual breakdown of the massive addressable market for leaderboard markets, spanning different industries and behaviors.',
+    rationale:
+      'Any objective metric with a passionate community, high engagement, and a reliable oracle can be financialized into a liquid market. This moves DeFi from insular token trading into a universal cultural betting/investing layer.',
+  },
+  {
+    title: 'Ecosystem Value Proposition',
+    mechanic: 'A breakdown of why each participant uses the protocol.',
+    rationale:
+      'Traders & Hedgers: clean single-name relative exposure. Fans & Communities: measurable, tradable skin-in-the-game. LPs: time-based fee shares on parked principal without winner-picking. Market Makers & Arbitrageurs: repeatable spread capture and predictable sync-boundary arb. League Creators & Contenders: objective public price signal powering engagement and monetization.',
   },
 ];

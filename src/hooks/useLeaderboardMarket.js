@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 const INITIAL_RESERVE = 100000;
 const EPS = 1e-9;
 const MAX_TOASTS = 5;
+const ZAP_FEE = 0.003;
 
 const cloneRows = (rows) => rows.map((row) => ({ ...row }));
 const normalizeWeights = (weights) => {
@@ -12,7 +13,8 @@ const normalizeWeights = (weights) => {
 };
 
 export function useLeaderboardMarket(selectedMarket) {
-  const [portfolio, setPortfolio] = useState({ usdc: 10000, holdings: {} });
+  const [portfolio, setPortfolio] = useState({ usdc: 10000, holdings: {}, invested: 0, realized: 0 });
+  const [lpPosition, setLpPosition] = useState({ principal: 0, feeShares: 0, feesAccrued: 0 });
   const [toasts, setToasts] = useState([]);
   const [eventLog, setEventLog] = useState([]);
 
@@ -27,10 +29,7 @@ export function useLeaderboardMarket(selectedMarket) {
   });
 
   const appendEvent = (message) => {
-    setEventLog((prev) => [
-      { id: crypto.randomUUID(), ts: new Date().toISOString(), message },
-      ...prev.slice(0, 19),
-    ]);
+    setEventLog((prev) => [{ id: crypto.randomUUID(), ts: new Date().toISOString(), message }, ...prev.slice(0, 24)]);
   };
 
   const addToast = (message) => {
@@ -50,9 +49,43 @@ export function useLeaderboardMarket(selectedMarket) {
         spot: contender.weight,
       }))
     );
-    setPortfolio({ usdc: 10000, holdings: {} });
+    setPortfolio({ usdc: 10000, holdings: {}, invested: 0, realized: 0 });
+    setLpPosition({ principal: 0, feeShares: 0, feesAccrued: 0 });
     setToasts([]);
     setEventLog([]);
+  };
+
+  const accrueFee = (notional) => {
+    const fee = notional * ZAP_FEE;
+    setLpPosition((prev) => {
+      const shareBase = prev.principal + fee;
+      const newShares = prev.principal > 0 ? fee / Math.max(prev.principal, EPS) : 0;
+      return {
+        principal: prev.principal,
+        feeShares: prev.feeShares + newShares,
+        feesAccrued: prev.feesAccrued + fee,
+        nav: shareBase,
+      };
+    });
+  };
+
+  const injectLiquidity = (factor = 1.2) => {
+    if (factor <= 0) return;
+    setProtocol((prev) =>
+      prev.map((row) => {
+        const x = row.x * factor;
+        const y = row.y * factor;
+        return { ...row, x, y, spot: x / y };
+      })
+    );
+    setLpPosition((prev) => ({
+      ...prev,
+      principal: prev.principal * factor + 1000,
+      feeShares: prev.feeShares + 1,
+    }));
+    const message = `LP INJECTION: reserves scaled by ${factor.toFixed(2)}x and LP baseline depth increased.`;
+    addToast(message);
+    appendEvent(message);
   };
 
   const previewBuy = (targetName, deposit) => {
@@ -64,8 +97,7 @@ export function useLeaderboardMarket(selectedMarket) {
     let recoveredUsdc = 0;
     rows.forEach((row, idx) => {
       if (idx === targetIndex) return;
-      const usdcOut = (row.x * deposit) / (row.y + deposit);
-      recoveredUsdc += usdcOut;
+      recoveredUsdc += (row.x * deposit) / (row.y + deposit);
     });
 
     const target = rows[targetIndex];
@@ -97,8 +129,7 @@ export function useLeaderboardMarket(selectedMarket) {
       else hi = z;
     }
 
-    const z = lo;
-    return { z, impliedExecution: z / quantity };
+    return { z: lo, impliedExecution: lo / quantity };
   };
 
   const zapBuy = (targetName, deposit) => {
@@ -122,20 +153,24 @@ export function useLeaderboardMarket(selectedMarket) {
       const tokenOut = (target.y * recoveredUsdc) / (target.x + recoveredUsdc);
       target.x += recoveredUsdc;
       target.y -= tokenOut;
-
       rows.forEach((row) => {
         row.spot = row.x / row.y;
       });
 
+      const fee = deposit * ZAP_FEE;
+      const netDeposit = deposit + fee;
       setPortfolio((current) => ({
-        usdc: current.usdc - deposit,
+        usdc: current.usdc - netDeposit,
+        invested: current.invested + netDeposit,
+        realized: current.realized,
         holdings: {
           ...current.holdings,
           [targetName]: (current.holdings[targetName] || 0) + deposit + tokenOut,
         },
       }));
 
-      const message = `ZAP BUY ${targetName}: minted ${deposit.toFixed(2)} baskets, recovered ${recoveredUsdc.toFixed(3)} USDC, delivered ${(deposit + tokenOut).toFixed(3)} ${targetName}.`;
+      accrueFee(deposit);
+      const message = `ZAP BUY ${targetName}: ${(deposit + tokenOut).toFixed(3)} received, ${fee.toFixed(3)} fee accrued to LPs.`;
       addToast(message);
       appendEvent(message);
       return rows;
@@ -161,12 +196,10 @@ export function useLeaderboardMarket(selectedMarket) {
         const z = (lo + hi) / 2;
         const sellA = Math.max(quantity - z, 0);
         const raised = (target.x * sellA) / (target.y + sellA);
-
         const cost = rows.reduce((acc, row, idx) => {
           if (idx === t) return acc;
           return acc + (row.x * z) / Math.max(row.y - z, EPS);
         }, 0);
-
         if (cost <= raised) lo = z;
         else hi = z;
       }
@@ -174,7 +207,6 @@ export function useLeaderboardMarket(selectedMarket) {
       const z = lo;
       const sellA = Math.max(quantity - z, 0);
       const raised = (target.x * sellA) / (target.y + sellA);
-
       target.x -= raised;
       target.y += sellA;
 
@@ -184,15 +216,18 @@ export function useLeaderboardMarket(selectedMarket) {
         row.x += usdcCost;
         row.y -= z;
       });
-
       rows.forEach((row) => {
         row.spot = row.x / row.y;
       });
 
+      const fee = z * ZAP_FEE;
+      const received = z - fee;
       setPortfolio((current) => {
         const nextAmount = (current.holdings[targetName] || 0) - quantity;
         return {
-          usdc: current.usdc + z,
+          usdc: current.usdc + received,
+          invested: current.invested,
+          realized: current.realized + received,
           holdings: {
             ...current.holdings,
             [targetName]: nextAmount < EPS ? 0 : nextAmount,
@@ -200,7 +235,8 @@ export function useLeaderboardMarket(selectedMarket) {
         };
       });
 
-      const message = `ZAP SELL ${targetName}: sold ${sellA.toFixed(3)} into vAMM, compiled ${z.toFixed(3)} baskets, returned ${z.toFixed(3)} USDC.`;
+      accrueFee(z);
+      const message = `ZAP SELL ${targetName}: ${z.toFixed(3)} gross USDC compiled, ${(fee).toFixed(3)} fee, ${(received).toFixed(3)} net.`;
       addToast(message);
       appendEvent(message);
       return rows;
@@ -221,24 +257,10 @@ export function useLeaderboardMarket(selectedMarket) {
       })
     );
 
-    const message = 'ORACLE SYNC: weights committed and vAMM quote reserves deterministically re-anchored to NAV.';
+    const message = 'ORACLE SYNC: weights committed and vAMM reserves deterministically re-anchored to NAV.';
     addToast(message);
     appendEvent(message);
     return true;
-  };
-
-  const injectLiquidity = (factor = 1.2) => {
-    if (factor <= 0) return;
-    setProtocol((prev) =>
-      prev.map((row) => {
-        const x = row.x * factor;
-        const y = row.y * factor;
-        return { ...row, x, y, spot: x / y };
-      })
-    );
-    const message = `LP INJECTION: reserves scaled by ${factor.toFixed(2)}x to flatten slippage.`;
-    addToast(message);
-    appendEvent(message);
   };
 
   const metrics = useMemo(() => {
@@ -247,12 +269,25 @@ export function useLeaderboardMarket(selectedMarket) {
       const row = protocol.find((entry) => entry.name === name);
       return acc + (row ? qty * row.spot : 0);
     }, 0);
+    const nav = portfolio.usdc + holdingsValue;
     return {
       totalDepth,
       holdingsValue,
-      net: portfolio.usdc + holdingsValue,
+      net: nav,
+      userPnl: {
+        invested: portfolio.invested,
+        realized: portfolio.realized,
+        nav,
+        unrealized: nav + portfolio.realized - portfolio.invested,
+      },
+      lpPnl: {
+        principal: lpPosition.principal,
+        fees: lpPosition.feesAccrued,
+        feeShares: lpPosition.feeShares,
+        nav: lpPosition.principal + lpPosition.feesAccrued,
+      },
     };
-  }, [portfolio, protocol]);
+  }, [portfolio, protocol, lpPosition]);
 
   return {
     portfolio,
