@@ -35,8 +35,8 @@ const bootLeague = (leagueId: string) => {
 };
 
 export function useLeaderboardMarket() {
-  const [leagueId, setLeagueId] = useState(LEAGUES[0].id);
-  const [contenders, setContenders] = useState<ContenderState[]>(bootLeague(LEAGUES[0].id));
+  const [leagueId, setLeagueId] = useState('demo');
+  const [contenders, setContenders] = useState<ContenderState[]>(bootLeague('demo'));
   const [portfolio, setPortfolio] = useState<Portfolio>({ cash: 15000, holdings: {}, costBasis: {}, realizedPnl: 0, startNav: 15000 });
   const [lp, setLp] = useState<LPState>({ principal: 200000, feePool: 0, parkedScore: 0, lastTs: Date.now() });
   const [change, setChange] = useState<ChangeCard | null>(null);
@@ -233,6 +233,47 @@ export function useLeaderboardMarket() {
     setHistory((h) => h.slice(0, -1));
   };
 
+
+  const previewTrade = (side: 'buy' | 'sell', id: string, amount: number) => {
+    if (amount <= 0) return null;
+    const t = contenders.findIndex((c) => c.id === id);
+    if (t < 0) return null;
+    const rows = clone(contenders);
+
+    if (side === 'buy') {
+      let recovered = 0;
+      rows.forEach((row, i) => {
+        if (i === t) return;
+        const usdcOut = (row.x * amount) / (row.y + amount);
+        recovered += usdcOut;
+      });
+      const target = rows[t];
+      const routedOut = (target.y * recovered) / (target.x + recovered);
+      return {
+        basketMinted: amount / 1000,
+        nonTargetSold: amount / 1000,
+        quoteRecovered: recovered,
+        targetBought: routedOut,
+        totalTarget: amount / 1000 + routedOut,
+      };
+    }
+
+    const z = solveRedeem(rows, t, amount);
+    const sellA = amount - z;
+    const raised = (rows[t].x * sellA) / (rows[t].y + sellA);
+    const cost = rows.reduce((acc, r, idx) => {
+      if (idx === t) return acc;
+      return acc + (r.x * z) / Math.max(r.y - z, EPS);
+    }, 0);
+    const grossPayout = Math.max(0, z + (raised - cost));
+    return {
+      basketMinted: 0,
+      nonTargetSold: z,
+      quoteRecovered: raised,
+      targetBought: -sellA,
+      totalTarget: grossPayout,
+    };
+  };
   const lpEarned = lp.feePool * (lp.parkedScore / Math.max(lp.parkedScore + 1_000_000, EPS));
 
   return {
@@ -249,6 +290,7 @@ export function useLeaderboardMarket() {
     injectLp,
     reset,
     undo,
+    previewTrade,
     setLeague: (id: string) => reset(id),
   };
 }

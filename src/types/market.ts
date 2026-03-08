@@ -15,7 +15,7 @@ export type ContenderSeed = {
 };
 
 export type LeaguePreset = {
-  id: 'ai' | 'epl' | 'defi';
+  id: 'demo' | 'ai' | 'epl' | 'defi';
   name: string;
   oracleName: string;
   syncCadence: string;

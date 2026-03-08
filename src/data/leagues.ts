@@ -2,6 +2,17 @@ import type { LeaguePreset } from '../types/market';
 
 export const LEAGUES: LeaguePreset[] = [
   {
+    id: 'demo',
+    name: '3-Token Demo',
+    oracleName: 'Demo Standing Share',
+    syncCadence: 'Guided Epoch',
+    contenders: [
+      { id: 'token-a', name: 'Token A', ticker: 'A', badge: 'A', color: '#0ea5e9', metricLabel: 'Standing score', metricValue: 33.33, metricDelta: 0, weight: 1 / 3, depth: 1 },
+      { id: 'token-b', name: 'Token B', ticker: 'B', badge: 'B', color: '#6366f1', metricLabel: 'Standing score', metricValue: 33.33, metricDelta: 0, weight: 1 / 3, depth: 1 },
+      { id: 'token-c', name: 'Token C', ticker: 'C', badge: 'C', color: '#f59e0b', metricLabel: 'Standing score', metricValue: 33.33, metricDelta: 0, weight: 1 / 3, depth: 1 },
+    ],
+  },
+  {
     id: 'ai',
     name: 'AI Models',
     oracleName: 'Benchmark Composite',
