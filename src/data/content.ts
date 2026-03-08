@@ -1,20 +1,46 @@
-export const pathways = ['LEARN', 'SIMULATE', 'ESTIMATE', 'THE MATH'] as const;
+import type { JourneySlide, LearnStep } from '../types/content';
+import type { Persona } from '../types/market';
 
-export const learnSteps = [
-  ['What it is', 'Continuous markets for relative performance, not one-off event resolution.'],
-  ['Full-basket issuance', 'Primary layer mints balanced baskets only to preserve solvency.'],
-  ['Single-name zap UX', 'Users trade one contender while router handles basket + conversion.'],
-  ['Oracle sync', 'Scheduled re-anchor aligns spot to objective fundamental NAVs.'],
-  ['LP fee-share', 'Earn-out from time parked in principal instead of toxic-flow exposure.'],
-  ['Safe inclusion', 'New contenders added at sync boundaries with anti-dilution logic.'],
-  ['Seasonal close', 'Finite leagues settle at terminal sync; perpetual leagues keep running.'],
-  ['Category expansion', 'AI, creators, sports, protocols, music, ESG and beyond.'],
-  ['Ecosystem value', 'Different utility for traders, fans, allocators, hedgers, LPs, curators.'],
-] as const;
+export const JOURNEY_SLIDES: JourneySlide[] = [
+  { title: 'We already rank everything', happening: 'From model benchmarks to league tables, rankings are a daily language.', why: 'People already care deeply about position changes, not just final winners.', example: 'Atlas moves from #3 to #2 after a benchmark release.', plain: 'If rankings move attention, they can move capital too.' },
+  { title: 'Podium makes standings tradable', happening: 'Each contender gets a live market price tied to standing share.', why: 'Users can express conviction on trajectories, not one-off headlines.', example: 'Buy ATL when you think it will gain ranking share next month.', plain: 'You own exposure to relative performance.' },
+  { title: 'Genesis LP seeds depth', happening: 'A founding LP parks principal into the shared reserve.', why: 'Depth enables cleaner execution and lower initial slippage.', example: '$500k reserve supports first wave trading.', plain: 'LP capital makes the market usable from day one.' },
+  { title: 'User 1 buys a single name', happening: 'Zap router mints a full basket then routes into target exposure.', why: 'Single-name UX without breaking base solvency.', example: 'User buys $1,000 ATL with one click.', plain: 'Simple front-end, coherent accounting under the hood.', underTheHood: 'USDC → basket mint → non-target unwind → ATL accumulation.' },
+  { title: 'User 2 trades a rival later', happening: 'Independent order flow moves local spot prices between syncs.', why: 'Market learns from participants continuously.', example: 'User 2 sells NVA; NVA spot dips while ATL premium widens.', plain: 'Prices update as views collide.' },
+  { title: 'Oracle sees real-world changes', happening: 'Objective metrics refresh on schedule.', why: 'Fundamentals stay grounded in measurable performance.', example: 'New benchmark round changes model scores.', plain: 'Reality updates the market’s anchor.' },
+  { title: 'Sync re-anchors fundamentals', happening: 'At sync, NAV updates and spot re-opens at new fair levels.', why: 'Prevents permanent drift from fundamentals.', example: 'ATL NAV increases from 0.24 to 0.27 after oracle update.', plain: 'Market discovery continues, but fundamentals reset each epoch.' },
+  { title: 'LP earns over parked time', happening: 'Fee-share earn-out accrues from time principal stays parked.', why: 'LP incentives align with depth duration, not winner-picking.', example: 'LP earns greater share after 30 days than after 3 days.', plain: 'Longer commitment can earn more.' },
+  { title: 'Seasonal close or perpetual continuation', happening: 'Finite leagues settle at terminal sync; open leagues continue.', why: 'Supports both campaign-style and always-on markets.', example: 'Football season settles in May; AI league rolls forward.', plain: 'One mechanism supports both market rhythms.' },
+];
 
-export const glossary = [
-  ['Fundamental NAV', 'Oracle-implied fair value of a contender share from current weights + reserve accounting.'],
-  ['Zap Router', 'Execution layer that mints full baskets and routes into single-name exposure.'],
-  ['Sync', 'Scheduled epoch boundary when oracle weights refresh and prices re-anchor.'],
-  ['Principal Parked Time', 'Duration LP capital remains in reserve, driving fee-share earn-out.'],
-] as const;
+export const LEARN_STEPS: LearnStep[] = [
+  { id: 'basket', title: 'Full-basket primary issuance', plainEnglish: 'Primary mint/redeem always happens as a balanced basket.', underTheHood: '1 collateral unit mints exposure to all contenders in fixed proportion.', whyItMatters: 'Prevents arbitrary single-name dilution at the base layer.', designRationale: 'Solvency first, convenience handled by routing layer.', workedExample: 'Deposit 1,000 USDC → 1,000 basket units spread across all names.', diagramVariant: 'basket' },
+  { id: 'reserve', title: 'Shared reserve accounting', plainEnglish: 'All contender markets draw from one coherent reserve system.', underTheHood: 'Each contender has quote reserve x and token reserve y, with spot = x/y.', whyItMatters: 'Makes value conservation inspectable and deterministic.', designRationale: 'Transparent reserve state is easier to reason about than black-box pricing.', workedExample: 'If x=24,000 and y=100,000, spot is 0.24.', diagramVariant: 'basket' },
+  { id: 'zap', title: 'Single-name trading via Zap', plainEnglish: 'Users trade one name, router handles basket mechanics.', underTheHood: 'Buy flow: mint basket, unwind non-target legs, accumulate target.', whyItMatters: 'Familiar UX without weakening accounting discipline.', designRationale: 'Separate user intent from settlement mechanics.', workedExample: '$500 buy of ATL returns basket ATL leg + routed ATL from unwind proceeds.', diagramVariant: 'zap' },
+  { id: 'sync', title: 'Oracle sync and re-anchor', plainEnglish: 'Markets trade freely intra-epoch, then sync to updated NAV.', underTheHood: 'At sync, weights refresh and quote reserves re-anchored to NAV.', whyItMatters: 'Combines market discovery with objective fundamental resets.', designRationale: 'Keeps long-run pricing tied to measurable reality.', workedExample: 'NVA drifts to 0.18 vs NAV 0.16; sync re-opens near 0.16.', diagramVariant: 'sync' },
+  { id: 'lp', title: 'LP fee-share earn-out', plainEnglish: 'LPs are paid for parked principal time, not directional picks.', underTheHood: 'Fee pool accumulates from trading; earn-out weight grows with principal-hours.', whyItMatters: 'Rewards durable depth provision.', designRationale: 'Avoids classic toxic-flow framing of two-sided AMM LPing.', workedExample: '100k parked for 10 days earns more share than 100k for 1 day.', diagramVariant: 'lp' },
+  { id: 'add', title: 'Adding contenders safely', plainEnglish: 'New entrants are introduced at sync boundaries.', underTheHood: 'Universe expands with deterministic rebalance and anti-dilution treatment.', whyItMatters: 'League can evolve without surprising incumbent holders.', designRationale: 'Change only at scheduled boundaries keeps trust high.', workedExample: '6-name league becomes 7-name league at next sync with transparent reweight.', diagramVariant: 'sync' },
+  { id: 'season', title: 'Seasonal close', plainEnglish: 'Finite leagues can settle at terminal sync.', underTheHood: 'Trading halts; holders redeem versus terminal weights.', whyItMatters: 'Clean closure for seasonal products.', designRationale: 'Institutional users need deterministic settlement rails.', workedExample: 'Final table locks, redemption executes from terminal NAV.', diagramVariant: 'season' },
+  { id: 'perp', title: 'Perpetual leagues', plainEnglish: 'Some categories keep running with recurring syncs.', underTheHood: 'Epoch schedule repeats with fresh oracle data each cycle.', whyItMatters: 'Supports long-duration engagement and recurring volume.', designRationale: 'Many rankings never truly end (AI, protocols, creators).', workedExample: 'Daily sync for DeFi TVL league.', diagramVariant: 'sync' },
+  { id: 'why', title: 'Why this structure exists', plainEnglish: 'The design balances solvency, usability, and tradability.', underTheHood: 'Primary layer enforces coherence; routing layer delivers simple single-name execution.', whyItMatters: 'Creates a credible market object instead of a UI gimmick.', designRationale: 'Financial integrity is product strategy.', workedExample: 'Users get one-click trades while reserve state remains auditable.', diagramVariant: 'basket' },
+];
+
+export const GLOSSARY: Record<string, string> = {
+  Oracle: 'Objective data source that updates contender metrics and weights.',
+  NAV: 'Fundamental fair value implied by oracle weights and reserve accounting.',
+  Spot: 'Current executable market price between syncs.',
+  Sync: 'Scheduled re-anchor where fundamentals update for the next epoch.',
+  'Full Basket': 'Balanced bundle containing every contender token.',
+  Zap: 'Router flow that maps single-name intent onto basket mechanics.',
+  LP: 'Liquidity provider supplying principal to shared reserve depth.',
+  'Fee Share': 'Claim on fee pool earned via parked principal time.',
+  'Earn-out': 'Time-based LP accrual mechanism for fee participation.',
+  'Premium / Discount': 'Spot deviation above/below fundamental NAV.',
+};
+
+export const PERSONA_CALLOUTS: Record<Persona, string> = {
+  Trader: 'Focus on dispersion, momentum, and reversion between sync boundaries.',
+  Fan: 'Follow the standings you already care about and express conviction continuously.',
+  LP: 'Primary edge is duration-based depth provision, not picking winners.',
+  'League Creator': 'Package communities around objective metrics with recurring market moments.',
+};
