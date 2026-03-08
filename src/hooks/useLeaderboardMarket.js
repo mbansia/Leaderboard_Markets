@@ -13,7 +13,14 @@ const normalizeWeights = (weights) => {
 };
 
 export function useLeaderboardMarket(selectedMarket) {
-  const [portfolio, setPortfolio] = useState({ usdc: 10000, holdings: {}, invested: 0, realized: 0 });
+  const [portfolio, setPortfolio] = useState({
+    usdc: 10000,
+    holdings: {},
+    costBasis: {},
+    invested: 0,
+    realizedProceeds: 0,
+    realizedPnl: 0,
+  });
   const [lpPosition, setLpPosition] = useState({ principal: 0, feeShares: 0, feesAccrued: 0 });
   const [toasts, setToasts] = useState([]);
   const [eventLog, setEventLog] = useState([]);
@@ -49,7 +56,14 @@ export function useLeaderboardMarket(selectedMarket) {
         spot: contender.weight,
       }))
     );
-    setPortfolio({ usdc: 10000, holdings: {}, invested: 0, realized: 0 });
+    setPortfolio({
+      usdc: 10000,
+      holdings: {},
+      costBasis: {},
+      invested: 0,
+      realizedProceeds: 0,
+      realizedPnl: 0,
+    });
     setLpPosition({ principal: 0, feeShares: 0, feesAccrued: 0 });
     setToasts([]);
     setEventLog([]);
@@ -162,10 +176,15 @@ export function useLeaderboardMarket(selectedMarket) {
       setPortfolio((current) => ({
         usdc: current.usdc - netDeposit,
         invested: current.invested + netDeposit,
-        realized: current.realized,
+        realizedProceeds: current.realizedProceeds,
+        realizedPnl: current.realizedPnl,
         holdings: {
           ...current.holdings,
           [targetName]: (current.holdings[targetName] || 0) + deposit + tokenOut,
+        },
+        costBasis: {
+          ...current.costBasis,
+          [targetName]: (current.costBasis[targetName] || 0) + netDeposit,
         },
       }));
 
@@ -223,14 +242,24 @@ export function useLeaderboardMarket(selectedMarket) {
       const fee = z * ZAP_FEE;
       const received = z - fee;
       setPortfolio((current) => {
-        const nextAmount = (current.holdings[targetName] || 0) - quantity;
+        const prevQty = current.holdings[targetName] || 0;
+        const nextAmount = prevQty - quantity;
+        const prevCostBasis = current.costBasis[targetName] || 0;
+        const closedRatio = prevQty > EPS ? Math.min(quantity / prevQty, 1) : 0;
+        const realizedCost = prevCostBasis * closedRatio;
+        const nextCostBasis = Math.max(prevCostBasis - realizedCost, 0);
         return {
           usdc: current.usdc + received,
           invested: current.invested,
-          realized: current.realized + received,
+          realizedProceeds: current.realizedProceeds + received,
+          realizedPnl: current.realizedPnl + (received - realizedCost),
           holdings: {
             ...current.holdings,
             [targetName]: nextAmount < EPS ? 0 : nextAmount,
+          },
+          costBasis: {
+            ...current.costBasis,
+            [targetName]: nextAmount < EPS ? 0 : nextCostBasis,
           },
         };
       });
@@ -269,16 +298,26 @@ export function useLeaderboardMarket(selectedMarket) {
       const row = protocol.find((entry) => entry.name === name);
       return acc + (row ? qty * row.spot : 0);
     }, 0);
-    const nav = portfolio.usdc + holdingsValue;
+    const accountNav = portfolio.usdc + holdingsValue;
+    const openCostBasis = Object.values(portfolio.costBasis || {}).reduce((acc, value) => acc + value, 0);
+    const unrealizedPnl = holdingsValue - openCostBasis;
+    const totalPnl = portfolio.realizedPnl + unrealizedPnl;
+    const startingCapital = 10000;
     return {
       totalDepth,
       holdingsValue,
-      net: nav,
+      net: accountNav,
       userPnl: {
         invested: portfolio.invested,
-        realized: portfolio.realized,
-        nav,
-        unrealized: nav + portfolio.realized - portfolio.invested,
+        realizedProceeds: portfolio.realizedProceeds,
+        realizedPnl: portfolio.realizedPnl,
+        openCostBasis,
+        positionValue: holdingsValue,
+        accountNav,
+        cash: portfolio.usdc,
+        unrealizedPnl,
+        totalPnl,
+        accountChange: accountNav - startingCapital,
       },
       lpPnl: {
         principal: lpPosition.principal,

@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
 
-const options = ['Learn', 'Simulate', 'Estimate'];
+const options = ['Learn', 'Simulate', 'Estimate', 'Math'];
 
 export function PathwayTabs({ active, onChange }) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {options.map((option) => {
         const selected = active === option;
         return (
