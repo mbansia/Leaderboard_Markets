@@ -1,20 +1,8 @@
-# Podium — Leaderboard Markets Demo
+# Leaderboard Markets Explainer Site
 
-Client-side React + Vite demo for exploring the Leaderboard Markets primitive.
+Premium light-mode single-page educational site built with React + TypeScript + Vite + Tailwind + Framer Motion.
 
-## What is included
-
-- **Learn**: lifecycle walkthrough for Leaderboard Markets mechanics and design rationale.
-- **Simulate**: interactive market simulator with zap-style trading, oracle sync, and LP dynamics.
-- **Estimate**: protocol economics calculator for treasury and LP outcomes.
-
-## Tech stack
-
-- React (Vite)
-- Tailwind CSS
-- Framer Motion
-
-## Local development
+## Run locally
 
 ```bash
 npm install
@@ -28,4 +16,30 @@ npm run build
 npm run preview
 ```
 
-> This is a stateless, frontend-only demo with no backend or live wallet/oracle integrations.
+## Site structure
+
+1. Hero / intro
+2. What is a Leaderboard Market?
+3. Why it matters
+4. Potential markets and demand
+5. Comparison vs other markets
+6. Master system diagram
+7. Canonical step walkthrough (Token A/B/C)
+8. Guided simulator (AI/Crypto/Football)
+9. Exhaustive FAQ
+10. Final CTA
+
+## Simulator simplifications
+
+- Labeled as an **Interactive intuition model**.
+- Beginner arithmetic ignores fees.
+- Spot updates are deterministic teaching heuristics, not a full smart-contract implementation.
+- Sync snaps spot back to NAV to teach epoch re-anchoring.
+
+## Canonical example consistency
+
+The same 3-contender setup (Token A, Token B, Token C), reserve assumptions, and routed single-name flow are reused in:
+- walkthrough section narrative,
+- system diagram explanation,
+- simulator guided story,
+- FAQ mechanics answers.
